@@ -10,8 +10,7 @@ function waitRedisConnect {
 }
 
 docker-compose up -d
-docker-compose scale sentinel=3
-docker-compose scale redis=3
+docker-compose scale redis=3 sentinel=3
 
 waitRedisConnect redis 1 6379
 waitRedisConnect redis 2 6379
@@ -24,5 +23,5 @@ waitRedisConnect sentinel 3 26379
 docker-compose exec --index=2 redis redis-cli SLAVEOF dockerredis_redis_1 6379
 docker-compose exec --index=3 redis redis-cli SLAVEOF dockerredis_redis_1 6379
 
-docker-compose stop haproxy
-docker-compose start haproxy
+docker-compose stop redisproxy
+docker-compose start redisproxy

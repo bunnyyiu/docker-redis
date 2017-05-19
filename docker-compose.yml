@@ -5,7 +5,6 @@ services:
     image: redis:3-alpine
     ports:
       - 6379
-
   sentinel:
     build: ./sentinel/3-alpine
     depends_on:
@@ -15,7 +14,7 @@ services:
       - SENTINEL_DOWN_AFTER=5000
       - SENTINEL_FAILOVER=5000
       - MASTER_HOST=dockerredis_redis_1
-  haproxy:
+  redisproxy:
     build: ./haproxy/1.7
     depends_on:
       - redis
