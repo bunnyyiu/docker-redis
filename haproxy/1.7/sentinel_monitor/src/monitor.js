@@ -66,7 +66,7 @@ const resolveServer = function(ip) {
     return Promise.reject(new Error(`Unrecognized ip ${ip}`));
   }
   const cmd = `cat ${haproxyConfig} | \
-    grep ${host} | awk '{print $2}'`;
+    grep -E "redis-backend-[0-9]+ ${host}" | awk '{print $2}'`;
   return childProcess.execAsync(cmd).then(function(server) {
     return server.trim();
   });
