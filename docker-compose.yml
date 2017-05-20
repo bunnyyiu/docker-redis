@@ -27,3 +27,7 @@ services:
       - ADMIN_PASSWORD=password
       - REDIS_HOSTS=dockerredis_redis_1,dockerredis_redis_2,dockerredis_redis_3
       - SENTINEL_NAME=sentinel
+networks:
+  default:
+    external:
+      name: redisha
