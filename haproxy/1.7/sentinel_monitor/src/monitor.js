@@ -40,7 +40,10 @@ Promise.all(redisHosts.map(function (host) {
 
 const client = redis.createClient({
   host: sentinelName,
-  port: sentinelPort
+  port: sentinelPort,
+  retry_strategy: function(options) {
+    return Math.min(options.attempt * 100, 3000);
+  }
 });
 
 const enableServerAsync = function(server) {
