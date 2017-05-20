@@ -20,6 +20,8 @@ if (!process.env.SENTINEL_NAME || !process.env.REDIS_HOSTS) {
   process.exit(1);
 }
 
+const sentinelPort = parseInt(process.env.SENTINEL_PORT || 26379, 10);
+
 sentinelName = process.env.SENTINEL_NAME;
 redisHosts = process.env.REDIS_HOSTS.split(',');
 
@@ -38,7 +40,7 @@ Promise.all(redisHosts.map(function (host) {
 
 const client = redis.createClient({
   host: sentinelName,
-  port: 26379
+  port: sentinelPort
 });
 
 const enableServerAsync = function(server) {
@@ -113,6 +115,10 @@ client.on('pmessage', function(pattern, channel, msg) {
       rebootAsync(params[2]).catch(console.error);
     }
   }
+});
+
+client.on('error', function(err) {
+  console.error(err);
 });
 
 client.psubscribe('*');

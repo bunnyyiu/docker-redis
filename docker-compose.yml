@@ -22,11 +22,14 @@ services:
     ports:
       - '9000:9000'
       - '6379:6379'
+      - '26379:26379'
     environment:
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=password
       - REDIS_HOSTS=dockerredis_redis_1,dockerredis_redis_2,dockerredis_redis_3
-      - SENTINEL_NAME=sentinel
+      - SENTINEL_HOSTS=dockerredis_sentinel_1,dockerredis_sentinel_2,dockerredis_sentinel_3
+      - SENTINEL_NAME=127.0.0.1
+      - SENTINEL_PORT=26379
 networks:
   default:
     external:

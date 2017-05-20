@@ -6,7 +6,7 @@ echo "=> Creating HAProxy Configuration Folder"
 mkdir -p /etc/haproxy
 
 echo "=> Writing HAProxy Configuration File"
-tee /etc/haproxy/haproxy.cfg <<EOF
+cat > /etc/haproxy/haproxy.cfg <<EOF
 global
   stats socket /etc/haproxy/haproxysock level admin
 
@@ -49,8 +49,34 @@ COUNT=1
 
 for i in $(echo $REDIS_HOSTS | sed "s/,/ /g")
 do
-    # call your procedure/other scripts here below
     echo "  server redis-backend-$COUNT $i:6379 maxconn 1024 check inter 1s" >> /etc/haproxy/haproxy.cfg
+    COUNT=$((COUNT + 1))
+done
+
+cat >> /etc/haproxy/haproxy.cfg <<EOF
+
+frontend ft_sentinel
+  mode tcp
+  bind *:26379
+  default_backend bk_sentinel
+
+backend bk_sentinel
+  mode tcp
+  option tcpka
+  option tcplog
+  option tcp-check
+  tcp-check send PING\r\n
+  tcp-check expect string +PONG
+  tcp-check send QUIT\r\n
+  tcp-check expect string +OK
+EOF
+
+echo "=> Adding Sentinel Nodes to Health Check"
+COUNT=1
+
+for i in $(echo $SENTINEL_HOSTS | sed "s/,/ /g")
+do
+    echo "  server sentinel-backend-$COUNT $i:26379 maxconn 1024 check inter 1s" >> /etc/haproxy/haproxy.cfg
     COUNT=$((COUNT + 1))
 done
 
