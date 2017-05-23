@@ -24,3 +24,4 @@ docker-compose exec --index=2 redis redis-cli SLAVEOF dockerredis_redis_1 6379 >
 docker-compose exec --index=3 redis redis-cli SLAVEOF dockerredis_redis_1 6379 > /dev/null
 
 docker-compose restart redisproxy
+docker-compose restart sentinelmonitor

@@ -5,6 +5,7 @@ services:
     image: redis:3-alpine
     ports:
       - 6379
+
   sentinel:
     build: ./sentinel/3-alpine
     depends_on:
@@ -14,6 +15,7 @@ services:
       - SENTINEL_DOWN_AFTER=1000
       - SENTINEL_FAILOVER=1000
       - MASTER_HOST=dockerredis_redis_1
+
   redisproxy:
     build: ./haproxy/1.7
     depends_on:
@@ -23,13 +25,24 @@ services:
       - '9000:9000'
       - '6379:6379'
       - '26379:26379'
+      - '9001:9001'
     environment:
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=password
       - REDIS_HOSTS=dockerredis_redis_1,dockerredis_redis_2,dockerredis_redis_3
       - SENTINEL_HOSTS=dockerredis_sentinel_1,dockerredis_sentinel_2,dockerredis_sentinel_3
-      - SENTINEL_NAME=127.0.0.1
+
+  sentinelmonitor:
+    build: ./sentinelmonitor/1.0
+    depends_on:
+      - redis
+      - sentinel
+      - redisproxy
+    environment:
+      - HAPROXY_SOCK=socat - TCP4:redisproxy:9001
+      - SENTINEL_HOST=redisproxy
       - SENTINEL_PORT=26379
+
 networks:
   default:
     external:

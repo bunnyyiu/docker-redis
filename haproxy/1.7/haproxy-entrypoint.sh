@@ -8,7 +8,8 @@ mkdir -p /etc/haproxy
 echo "=> Writing HAProxy Configuration File"
 cat > /etc/haproxy/haproxy.cfg <<EOF
 global
-  stats socket /etc/haproxy/haproxysock level admin
+  stats socket $STAT_SOCKET level admin
+  stats socket *:$ADMIN_PORT level admin
 
 defaults
   mode tcp
@@ -79,11 +80,6 @@ do
     echo "  server sentinel-backend-$COUNT $i:26379 maxconn 1024 check inter 1s" >> /etc/haproxy/haproxy.cfg
     COUNT=$((COUNT + 1))
 done
-
-pushd /root/sentinel_monitor
-source $NVM_DIR/nvm.sh
-node /root/sentinel_monitor/src/monitor.js &
-popd
 
 echo "=> Starting HAProxy"
 exec "/docker-entrypoint.sh" "$@"

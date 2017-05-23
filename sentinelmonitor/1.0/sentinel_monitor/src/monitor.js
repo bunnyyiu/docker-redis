@@ -8,38 +8,22 @@ const childProcess = require('child_process');
 bluebird.promisifyAll(dns);
 bluebird.promisifyAll(childProcess);
 
-let sentinelName = null;
-let redisHosts = null;
+let sentinelHost = null;
 
 const backendName = 'bk_redis';
-const haproxySock = '/etc/haproxy/haproxysock';
-const haproxyConfig = '/etc/haproxy/haproxy.cfg';
+const haproxyHost = process.env.HAPROXY_HOST || 'redisproxy';
+const haproxySock = process.env.HAPROXY_SOCK || ` socat - TCP4:${redisproxy}:9001`;
+const sentinelPort = parseInt(process.env.SENTINEL_PORT || 26379, 10);
 
-if (!process.env.SENTINEL_NAME || !process.env.REDIS_HOSTS) {
-  console.error('Please set environment variables SENTINEL_NAME, REDIS_HOSTS');
+if (!process.env.SENTINEL_HOST) {
+  console.error('Please set environment variables SENTINEL_HOST');
   process.exit(1);
 }
 
-const sentinelPort = parseInt(process.env.SENTINEL_PORT || 26379, 10);
-
-sentinelName = process.env.SENTINEL_NAME;
-redisHosts = process.env.REDIS_HOSTS.split(',');
-
-const ipHost = {};
-
-Promise.all(redisHosts.map(function (host) {
-  return dns.resolveAsync(host);
-})).then(function (ips) {
-  ips.forEach(function(ip, i) {
-    ipHost[ip[0]] = redisHosts[i];
-  });
-}).catch(function (err) {
-  console.error('Failure to resolve IP', err);
-  process.exit(-1);
-});
+sentinelHost = process.env.SENTINEL_HOST;
 
 const client = redis.createClient({
-  host: sentinelName,
+  host: sentinelHost,
   port: sentinelPort,
   retry_strategy: function(options) {
     return Math.min(options.attempt * 100, 3000);
@@ -47,29 +31,31 @@ const client = redis.createClient({
 });
 
 const enableServerAsync = function(server) {
-  const cmd = `echo enable server ${backendName}/${server} | \
-    socat stdio ${haproxySock}`;
+  const cmd = `echo enable server ${backendName}/${server} | ${haproxySock}`;
   console.log(cmd);
   return childProcess.execAsync(cmd);
 };
 
 const disableServerAsync = function(server) {
-  const cmd = `echo disable server ${backendName}/${server} | \
-    socat stdio ${haproxySock}`;
+  const cmd = `echo disable server ${backendName}/${server} | ${haproxySock}`;
   console.log(cmd);
   return childProcess.execAsync(cmd);
 };
 
 const resolveServer = function(ip) {
-  const host = ipHost[ip];
-  if (!host) {
-    return Promise.reject(new Error(`Unrecognized ip ${ip}`));
-  }
-  const cmd = `cat ${haproxyConfig} | \
-    grep -E "redis-backend-[0-9]+ ${host}" | awk '{print $2}'`;
-  return childProcess.execAsync(cmd).then(function(server) {
-    return server.trim();
-  });
+  const cmd = `echo show servers state | ${haproxySock} | grep "${backendName}" |
+  grep "${ip}" | awk '{print $4}'`;
+  console.log(cmd);
+  return childProcess.execAsync(cmd).then(function (server) {
+      return server.trim();
+  });;
+};
+
+const getALlServersAsync = function() {
+  const cmd = `echo show servers state | ${haproxySock} | grep "${backendName}" |
+  awk '{print $4}'`;
+  console.log(cmd);
+  return childProcess.execAsync(cmd);
 };
 
 const switchMasterAsync = function(oldMaster, newMaster) {
@@ -77,17 +63,16 @@ const switchMasterAsync = function(oldMaster, newMaster) {
     resolveServer(oldMaster),
     resolveServer(newMaster)
   ]).then(function(hosts) {
-    return disableServerAsync(hosts[0])
-    .then(function() {
+    return disableServerAsync(hosts[0]).then(function() {
       return enableServerAsync(hosts[1]);
     });
   });
 };
 
 const failoverAsync = function() {
-  return Promise.all(Object.keys(ipHost).map(function(ip) {
-    return resolveServer(ip);
-  })).then(function(hosts) {
+  return getALlServersAsync().then(function(hosts) {
+    return hosts.trim().split('\n');
+  }).then(function(hosts) {
     return Promise.all(hosts.map(function(host) {
       return disableServerAsync(host);
     }));
