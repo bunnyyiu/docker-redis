@@ -4,5 +4,5 @@ This `docker-compose.yml` is based on `redis:3` and `haproxy:1.7`. It creates a 
 ## Running the Cluster
 ```bash
 docker network create bridge redisha
-docker-compose up -d
+./up.sh
 ```
