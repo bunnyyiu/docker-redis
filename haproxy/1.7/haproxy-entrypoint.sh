@@ -37,6 +37,7 @@ backend bk_redis
   option tcpka
   option tcplog
   option tcp-check
+  tcp-check connect
   tcp-check send PING\r\n
   tcp-check expect string +PONG
   tcp-check send info\ replication\r\n
@@ -66,6 +67,7 @@ backend bk_sentinel
   option tcpka
   option tcplog
   option tcp-check
+  tcp-check connect
   tcp-check send PING\r\n
   tcp-check expect string +PONG
   tcp-check send QUIT\r\n
