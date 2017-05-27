@@ -136,7 +136,7 @@ Promise.resolve().then(function() {
 }).catch(function(err) {
   console.error('Error in making redis connection', err);
   console.error('The process will now exit');
-  gracefulExit();
+  process.nextTick(gracefulExit);
 });
 
 const gracefulExit = function() {
