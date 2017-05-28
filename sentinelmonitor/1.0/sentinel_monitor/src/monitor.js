@@ -38,9 +38,9 @@ const resolveServer = function(ip) {
   const cmd = `echo show servers state | ${haproxySock} | grep "${backendName}" |
   grep "${ip}" | awk '{print $4}'`;
   console.log(cmd);
-  return childProcess.execAsync(cmd).then(function (server) {
+  return childProcess.execAsync(cmd).then(function(server) {
       return server.trim();
-  });;
+  });
 };
 
 const getALlServersAsync = function() {
@@ -74,7 +74,7 @@ const failoverAsync = function() {
 const rebootAsync = function(master) {
   return failoverAsync().then(function() {
     return resolveServer(master);
-  }).then(function (host) {
+  }).then(function(host) {
     return enableServerAsync(host);
   });
 };
@@ -92,11 +92,11 @@ Promise.resolve().then(function() {
 
   bluebird.promisifyAll(pubsubClient);
   return pubsubClient;
-}).then(function (pubsubClient) {
+}).then(function(pubsubClient) {
   // Get current master and disbale other redis clients
   const sentinelCmd = ['get-master-addr-by-name', 'docker-cluster'];
   return pubsubClient.sendCommandAsync('SENTINEL', sentinelCmd)
-  .then(function (masterInfo) {
+  .then(function(masterInfo) {
     if (!masterInfo || masterInfo.length !== 2) {
       return Promise.reject(new Error('Error in getting current master'));
     }
@@ -104,11 +104,10 @@ Promise.resolve().then(function() {
     console.log(`The current master is ${masterInfo[0]}`);
     return rebootAsync(masterInfo[0]);
   })
-  .then(function () {
+  .then(function() {
     return pubsubClient;
   });
-
-}).then(function (pubsubClient) {
+}).then(function(pubsubClient) {
   pubsubClient.on('pmessage', function(pattern, channel, msg) {
     console.log(channel, msg);
     if (channel === '+switch-master') {
